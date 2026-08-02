@@ -22,15 +22,12 @@
     display: flex; justify-content: space-between; gap: 12px; font-size: 15px; text-align: left;
   }
   li span { color: #B8D98A; white-space: nowrap; }
-  a.bouton, button {
-    display: block; width: 100%; box-sizing: border-box; border: 0; cursor: pointer;
+  a.bouton {
+    display: block; width: 100%; box-sizing: border-box; border: 0;
     background: #B8D98A; color: #1A1D16; font-weight: 700; font-size: 17px;
-    padding: 15px; border-radius: 26px; text-decoration: none; margin-bottom: 10px;
+    padding: 15px; border-radius: 26px; text-decoration: none;
     font-family: inherit;
   }
-  button.second { background: transparent; color: #E6E4D4; border: 1px solid #7A7F68; }
-  .aide { color: #7A7F68; font-size: 13px; line-height: 1.5; margin-top: 18px; }
-  code { word-break: break-all; font-size: 11px; color: #7A7F68; }
 </style>
 </head>
 <body>
@@ -41,33 +38,12 @@
   <ul id="liste"></ul>
 
   <a class="bouton" id="ouvrir" href="#">Ouvrir dans Chrono</a>
-  <button class="second" id="copier">Copier le code</button>
-
-  <p class="aide" id="aide">
-    Si rien ne s'ouvre, c'est que l'application n'est pas installée sur ce téléphone.
-    Sinon : copie le code, puis lance Chrono — la séance sera proposée toute seule.
-  </p>
-  <p><code id="code"></code></p>
 </div>
 
 <script>
 const code = decodeURIComponent(location.hash.replace(/^#/, "")).trim();
 
-document.getElementById("code").textContent = code;
 document.getElementById("ouvrir").href = "chrono://seance?d=" + code;
-
-document.getElementById("copier").addEventListener("click", async () => {
-  const b = document.getElementById("copier");
-  try {
-    await navigator.clipboard.writeText(code);
-    b.textContent = "Code copié ✓";
-  } catch (e) {
-    const z = document.createElement("textarea");
-    z.value = code; document.body.appendChild(z); z.select();
-    document.execCommand("copy"); z.remove();
-    b.textContent = "Code copié ✓";
-  }
-});
 
 // Aperçu de la séance : le code est du JSON compressé (deflate) puis encodé en
 // base64 « URL ». Les navigateurs récents savent le décompresser tout seuls ;
