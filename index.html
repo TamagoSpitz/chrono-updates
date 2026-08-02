@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Séance Chrono</title>
+<style>
+  :root { color-scheme: dark; }
+  body {
+    margin: 0; min-height: 100vh; display: flex; align-items: center;
+    justify-content: center; padding: 24px; box-sizing: border-box;
+    background: #1A1D16; color: #E6E4D4;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .carte { width: 100%; max-width: 420px; text-align: center; }
+  .sur { font-size: 13px; letter-spacing: .18em; color: #7A7F68; text-transform: uppercase; }
+  h1 { font-size: 26px; margin: 10px 0 4px; }
+  .infos { color: #7A7F68; font-size: 14px; margin-bottom: 22px; }
+  ul { list-style: none; padding: 0; margin: 0 0 22px; }
+  li {
+    background: #22261D; border-radius: 10px; padding: 11px 14px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; gap: 12px; font-size: 15px; text-align: left;
+  }
+  li span { color: #B8D98A; white-space: nowrap; }
+  a.bouton, button {
+    display: block; width: 100%; box-sizing: border-box; border: 0; cursor: pointer;
+    background: #B8D98A; color: #1A1D16; font-weight: 700; font-size: 17px;
+    padding: 15px; border-radius: 26px; text-decoration: none; margin-bottom: 10px;
+    font-family: inherit;
+  }
+  button.second { background: transparent; color: #E6E4D4; border: 1px solid #7A7F68; }
+  .aide { color: #7A7F68; font-size: 13px; line-height: 1.5; margin-top: 18px; }
+  code { word-break: break-all; font-size: 11px; color: #7A7F68; }
+</style>
+</head>
+<body>
+<div class="carte">
+  <div class="sur">Séance partagée</div>
+  <h1 id="titre">Séance Chrono</h1>
+  <div class="infos" id="infos"></div>
+  <ul id="liste"></ul>
+
+  <a class="bouton" id="ouvrir" href="#">Ouvrir dans Chrono</a>
+  <button class="second" id="copier">Copier le code</button>
+
+  <p class="aide" id="aide">
+    Si rien ne s'ouvre, c'est que l'application n'est pas installée sur ce téléphone.
+    Sinon : copie le code, puis lance Chrono — la séance sera proposée toute seule.
+  </p>
+  <p><code id="code"></code></p>
+</div>
+
+<script>
+const code = decodeURIComponent(location.hash.replace(/^#/, "")).trim();
+
+document.getElementById("code").textContent = code;
+document.getElementById("ouvrir").href = "chrono://seance?d=" + code;
+
+document.getElementById("copier").addEventListener("click", async () => {
+  const b = document.getElementById("copier");
+  try {
+    await navigator.clipboard.writeText(code);
+    b.textContent = "Code copié ✓";
+  } catch (e) {
+    const z = document.createElement("textarea");
+    z.value = code; document.body.appendChild(z); z.select();
+    document.execCommand("copy"); z.remove();
+    b.textContent = "Code copié ✓";
+  }
+});
+
+// Aperçu de la séance : le code est du JSON compressé (deflate) puis encodé en
+// base64 « URL ». Les navigateurs récents savent le décompresser tout seuls ;
+// si ce n'est pas le cas, la page reste utilisable, seul l'aperçu manque.
+(async () => {
+  if (!code) return;
+  try {
+    const b64 = code.replace(/-/g, "+").replace(/_/g, "/");
+    const bin = atob(b64 + "=".repeat((4 - b64.length % 4) % 4));
+    const octets = Uint8Array.from(bin, c => c.charCodeAt(0));
+    const flux = new Blob([octets]).stream().pipeThrough(new DecompressionStream("deflate"));
+    const json = await new Response(flux).json();
+
+    if (json.n) document.getElementById("titre").textContent = json.n;
+    const ex = json.e || [];
+    document.getElementById("infos").textContent =
+      (json.c || "") + " · " + ex.length + " exercice" + (ex.length > 1 ? "s" : "");
+    const liste = document.getElementById("liste");
+    ex.forEach(e => {
+      const li = document.createElement("li");
+      li.textContent = e.n || "Exercice";
+      const d = document.createElement("span");
+      d.textContent = e.tr ? (e.ps || 0) + " × " + e.tr + " reps" : (e.ps || 0) + " séries";
+      li.appendChild(d);
+      liste.appendChild(li);
+    });
+  } catch (e) { /* aperçu indisponible : le bouton d'ouverture suffit */ }
+})();
+</script>
+</body>
+</html>
